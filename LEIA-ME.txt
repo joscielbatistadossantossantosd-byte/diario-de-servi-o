@@ -1,0 +1,19 @@
+DIÁRIO DE SERVIÇO — PACOTE PWA INDEPENDENTE
+
+Este pacote contém o aplicativo web instalável (PWA), com aba Perfil e armazenamento local IndexedDB. Não usa Claude AI e não contém integração com Itaú.
+
+IMPORTANTE
+- O ZIP NÃO é um APK. Primeiro extraia o ZIP.
+- Não abra o ZIP com um aplicativo bancário. Use o app Arquivos / Files do Android para extrair o conteúdo.
+- Não toque em arquivos individuais para instalar. O app precisa ser publicado em hospedagem HTTPS.
+- Depois de publicar, abra o endereço HTTPS no Chrome do Android > menu ⋮ > Instalar app / Adicionar à tela inicial.
+
+DADOS E PRIVACIDADE
+- Serviços, orçamentos, recebimentos, anexos e Perfil são guardados localmente neste aparelho/navegador via IndexedDB.
+- Não há sincronização automática entre aparelhos nem envio dos dados para servidor.
+- Faça backup regularmente em Recebido > Fazer backup completo.
+- Para levar dados a outro aparelho, use Restaurar backup.
+- Limpar os dados do navegador pode apagar os registros locais.
+
+HOSPEDAGEM
+Publique TODOS os arquivos desta pasta na raiz de um site HTTPS (por exemplo, GitHub Pages). O arquivo index.html deve ficar no endereço principal do site, junto com manifest.webmanifest, sw.js e os ícones.

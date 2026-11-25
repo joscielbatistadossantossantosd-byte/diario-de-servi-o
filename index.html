@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diário de Serviço</title>
+<meta name="theme-color" content="#f0b400">
+<meta name="description" content="Gestão de serviços, orçamentos e recebimentos.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+
+<style>
+:root{--bg:#eef1f4;--card:#fff;--ink:#15222d;--mut:#53626f;--line:#cfd8df;--acc:#f0b400;--accInk:#15222d;--ok:#1f7a4d;--bad:#b3261e;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181f;--card:#1a242d;--ink:#eaf0f5;--mut:#9fb0be;--line:#2f3d49;--ok:#5fd08f;--bad:#ff8a80;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#11181f;--card:#1a242d;--ink:#eaf0f5;--mut:#9fb0be;--line:#2f3d49;--ok:#5fd08f;--bad:#ff8a80;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:720px;margin:0 auto;padding:16px 16px 48px}
+h1{font-size:1.7rem;margin:8px 0 12px}
+h2{font-size:1.3rem;margin:20px 0 8px}
+.tabs{display:flex;gap:8px;margin-bottom:16px}
+.tabs button{flex:1;min-height:48px;border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;font:inherit;font-weight:700;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--acc);border-color:var(--acc);color:var(--accInk)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.item{width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.item b{font-size:1.1rem}
+.sub{color:var(--mut);font-size:.95rem}
+label{display:block;margin:12px 0 4px;font-weight:700}
+input,textarea,select{width:100%;min-height:48px;padding:10px 12px;font:inherit;color:var(--ink);background:var(--bg);border:2px solid var(--line);border-radius:10px}
+textarea{resize:vertical}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
+.grid .full{grid-column:1/-1}
+button.pri,button.sec,button.ghost{min-height:48px;padding:0 18px;border-radius:10px;font:inherit;font-weight:700;cursor:pointer;border:2px solid var(--line)}
+button.pri{background:var(--acc);border-color:var(--acc);color:var(--accInk)}
+button.sec{background:var(--card);color:var(--ink)}
+button.ghost{background:none;color:var(--ink)}
+button.danger{color:var(--bad)}
+a.btn{display:inline-flex;align-items:center;min-height:48px;padding:0 18px;border-radius:10px;font-weight:700;text-decoration:none;border:2px solid var(--acc);background:var(--acc);color:var(--accInk)}
+a.btn[aria-disabled="true"]{opacity:.5;pointer-events:none}
+.row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.par{display:grid;grid-template-columns:1fr 1fr 1fr auto auto;gap:8px;align-items:end;margin:8px 0}
+.par .x{min-height:48px;min-width:48px;border:2px solid var(--line);background:none;color:var(--bad);border-radius:10px;font-size:1.4rem;cursor:pointer}
+.chk{display:flex;align-items:center;gap:6px;margin:0;font-weight:400}
+.chk input{width:24px;min-height:24px}
+.tot{display:flex;flex-wrap:wrap;gap:16px}
+.tot div{flex:1;min-width:140px}
+.big{font-size:1.6rem;font-weight:700}
+.ok{color:var(--ok)}.bad{color:var(--bad)}
+.line{display:flex;gap:10px;align-items:center;padding:10px 0;border-top:1px solid var(--line)}
+.line:first-child{border-top:0}
+.line .t{flex:1}
+.note{margin:8px 0;padding:10px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);color:var(--mut)}
+.note:empty{display:none}
+.thumb{max-width:96px;max-height:96px;border-radius:8px;border:1px solid var(--line)}
+.anx{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}
+@media (max-width:480px){.grid{grid-template-columns:1fr}.par{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<main>
+<h1>Diário de Serviço</h1>
+<div class="tabs" role="tablist">
+<button role="tab" data-tab="servicos">Serviços</button>
+<button role="tab" data-tab="orcamento">Orçamento</button>
+<button role="tab" data-tab="recebido">Recebido</button>
+<button role="tab" data-tab="perfil">Perfil</button>
+</div>
+<div class="note" id="note" role="status"></div>
+<div id="app"></div>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const brl=n=>(Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+const fd=d=>d?d.split('-').reverse().join('/'):'sem data';
+const parseBR=v=>{let s=String(v==null?'':v).replace(/[^\d.,-]/g,'');if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');const n=Number(s);return isFinite(n)?n:0};
+const fmt=n=>n?String(n).replace('.',','):'';
+const newId=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36);
+const today=()=>{const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)};
+const setNote=t=>{$('#note').textContent=t||''};
+let db=null,assets=null,downloads=null,col=null,uid='local',memory=false;
+let items=[],cfg={minimo:300,porKm:0},tab='servicos',draft=null,arm=false;
+let orc={nome:'',tel:'',pedido:'',km:'',exato:''};
+
+// Banco local IndexedDB: os dados permanecem neste aparelho, sem Claude AI.
+const DB_NAME='diario-servico-local', DB_VERSION=1;
+function openLocalDB(){return new Promise((resolve,reject)=>{
+  const req=indexedDB.open(DB_NAME,DB_VERSION);
+  req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains('items'))d.createObjectStore('items',{keyPath:'id'});};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+});}
+function idbAll(){return new Promise((resolve,reject)=>{const tx=db.transaction('items','readonly');const r=tx.objectStore('items').getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error);});}
+function idbPut(value){return new Promise((resolve,reject)=>{const tx=db.transaction('items','readwrite');tx.objectStore('items').put(value);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);});}
+function idbDelete(id){return new Promise((resolve,reject)=>{const tx=db.transaction('items','readwrite');tx.objectStore('items').delete(id);tx.oncomplete=()=>resolve(true);tx.onerror=()=>reject(tx.error);});}
+(async()=>{
+  try{db=await openLocalDB();items=await idbAll();const c=items.find(i=>i.tipo==='config');if(c)cfg=Object.assign(cfg,c);
+    setNote('Dados salvos neste aparelho. Faça cópias de segurança regularmente.');
+  }catch(e){memory=true;setNote('Não foi possível abrir o armazenamento local. Seus dados podem não ser salvos.');}
+  render();
+})();
+
+async function save(it){
+  const id=it.id,data=Object.assign({},it);delete data.id;
+  if(memory){const i=items.findIndex(x=>x.id===id);const o=Object.assign({id},data);if(i<0)items.push(o);else items[i]=o;render();return true}
+  try{await idbPut(Object.assign({id},data));const i=items.findIndex(x=>x.id===id);if(i<0)items.push(Object.assign({id},data));else items[i]=Object.assign({id},data);render();return true}
+  catch(e){setNote('Não salvou no aparelho. Verifique o espaço disponível.');return false}
+}
+async function del(id){
+  if(memory){items=items.filter(x=>x.id!==id);render();return}
+  try{await idbDelete(id);items=items.filter(x=>x.id!==id);render()}catch(e){setNote('Não apagou. Tente de novo.')}
+}
+const servicos=()=>items.filter(i=>i.tipo==='servico').sort((a,b)=>(b.criado||0)-(a.criado||0));
+const sum=(s,pago)=>(s.parcelas||[]).filter(p=>!!p.pago===pago).reduce((t,p)=>t+(Number(p.valor)||0),0);
+
+function toDraft(s){
+  return {id:s.id,tipo:'servico',cliente:s.cliente||'',rua:s.rua||'',numero:s.numero||'',bairro:s.bairro||'',cidade:s.cidade||'',resumo:s.resumo||'',
+    total:fmt(s.total),parcelas:(s.parcelas||[]).map(p=>({data:p.data||'',valor:fmt(p.valor),pago:!!p.pago,rec:p.rec||''})),anexos:s.anexos||[],criado:s.criado||Date.now()};
+}
+function toDoc(d){
+  return {id:d.id,tipo:'servico',cliente:d.cliente.trim(),rua:d.rua.trim(),numero:d.numero.trim(),bairro:d.bairro.trim(),cidade:d.cidade.trim(),resumo:d.resumo.trim(),
+    total:parseBR(d.total),parcelas:d.parcelas.map(p=>({data:p.data||'',valor:parseBR(p.valor),pago:!!p.pago,rec:p.rec||''})),anexos:d.anexos||[],criado:d.criado||Date.now()};
+}
+const novo=()=>toDraft({id:newId(),criado:Date.now()});
+
+function render(){
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===tab)));
+  const app=$('#app');
+  app.innerHTML=tab==='servicos'?(draft?ficha():lista()):tab==='orcamento'?orcamento():tab==='perfil'?perfilHTML():recebidoV2();
+  if(tab==='orcamento')updMsg();
+}
+
+function lista(){
+  const l=servicos();
+  let h='<div class="row"><button class="pri" data-act="novo">Novo serviço</button></div>';
+  if(!l.length)return h+'<div class="card">Nenhum serviço ainda. Toque em “Novo serviço” para começar.</div>';
+  return h+l.map(s=>{
+    const rec=sum(s,true),falta=Math.max((Number(s.total)||0)-rec,0);
+    const prox=(s.parcelas||[]).filter(p=>!p.pago).map(p=>p.data).filter(Boolean).sort()[0];
+    return `<button class="card item" data-act="abrir" data-id="${esc(s.id)}"><b>${esc(s.cliente||'Sem nome')}</b>
+    <div class="sub">${esc([s.rua,s.numero].filter(Boolean).join(', '))} ${esc(s.bairro)} ${esc(s.cidade)}</div>
+    <div>${esc(s.resumo).slice(0,90)}</div>
+    <div class="tot" style="margin-top:8px"><div>Total<br><b>${brl(s.total)}</b></div><div>Recebido<br><b class="ok">${brl(rec)}</b></div><div>Falta<br><b class="${falta>0?'bad':''}">${brl(falta)}</b></div></div>
+    ${prox?`<div class="sub">Próxima parcela em ${fd(prox)}</div>`:''}</button>`;
+  }).join('');
+}
+
+const fld=(l,k,v,cls)=>`<div class="${cls||''}"><label>${l}<input data-k="${k}" value="${esc(v)}"></label></div>`;
+
+function resumoHTML(d){
+  const tot=parseBR(d.total),rec=d.parcelas.filter(p=>p.pago).reduce((n,p)=>n+parseBR(p.valor),0);
+  const prev=d.parcelas.reduce((n,p)=>n+parseBR(p.valor),0),falta=Math.max(tot-rec,0);
+  const datas=d.parcelas.map(p=>p.data).filter(Boolean).sort(),pagas=d.parcelas.filter(p=>p.pago&&p.data).map(p=>p.data).sort();
+  return `<div>Valor do serviço<div class="big">${brl(tot)}</div></div><div>Já recebido<div class="big ok">${brl(rec)}</div></div><div>Falta receber<div class="big ${falta>0?'bad':'ok'}">${brl(falta)}</div></div>`
+   +(datas.length?`<div class="sub" style="flex-basis:100%">Primeira parcela em ${fd(datas[0])}${pagas.length?'. Primeiro recebimento em '+fd(pagas[0]):''}.</div>`:'')
+   +(tot>0&&Math.abs(prev-tot)>0.009?`<div class="sub bad" style="flex-basis:100%">As parcelas somam ${brl(prev)}, e o valor do serviço é ${brl(tot)}.</div>`:'');
+}
+const updResumo=()=>{const r=$('#resumo');if(r&&draft)r.innerHTML=resumoHTML(draft)};
+function ficha(){
+  const d=draft,existe=items.some(i=>i.id===d.id);
+  const anx=(d.anexos||[]).map((a,i)=>`<div>${/^image\//.test(a.tipo||'')?`<a href="${esc(a.url)}" target="_blank" rel="noopener"><img class="thumb" src="${esc(a.url)}" alt="${esc(a.nome)}"></a>`:`<a href="${esc(a.url)}" target="_blank" rel="noopener">${esc(a.nome)}</a>`}<br><button class="ghost danger" data-act="rmanx" data-i="${i}">Tirar</button></div>`).join('');
+  return `<button class="ghost" data-act="voltar">Voltar</button>
+  <h2>${existe?'Ficha do serviço':'Novo serviço'}</h2>
+  <div class="card grid">
+    ${fld('Nome do proprietário','cliente',d.cliente,'full')}
+    ${fld('Rua','rua',d.rua)}${fld('Número','numero',d.numero)}
+    ${fld('Bairro','bairro',d.bairro)}${fld('Cidade','cidade',d.cidade)}
+    <div class="full"><label>O que será feito<textarea data-k="resumo" rows="3">${esc(d.resumo)}</textarea></label></div>
+    <div class="full"><label>Valor total (R$)<input data-k="total" inputmode="decimal" value="${esc(d.total)}"></label></div>
+  </div>
+  <div class="card tot" id="resumo">${resumoHTML(d)}</div>
+  <h2>Parcelas</h2>
+  <div class="card">
+    <div class="grid"><div><label>Quantas parcelas<input id="nParc" inputmode="numeric" placeholder="3"></label></div><div><label>Primeira data<input id="dtParc" type="date" value="${today()}"></label></div></div>
+    <button class="sec" data-act="dividir">Dividir o total</button>
+    ${d.parcelas.map((p,i)=>`<div class="par"><div><span class="sub" style="display:block">Vence em</span><input type="date" aria-label="Vence em" data-pi="${i}" data-pk="data" value="${esc(p.data)}"></div><div><span class="sub" style="display:block">Valor</span><input aria-label="Valor da parcela" inputmode="decimal" data-pi="${i}" data-pk="valor" value="${esc(p.valor)}"></div><div><span class="sub" style="display:block">Recebido em</span><input type="date" aria-label="Recebido em" data-pi="${i}" data-pk="rec" value="${esc(p.rec||'')}"></div><label class="chk"><input type="checkbox" data-pi="${i}" data-pk="pago" ${p.pago?'checked':''}>Pago</label><button class="x" data-act="rmpar" data-i="${i}" aria-label="Remover parcela">×</button></div>`).join('')}
+    <div class="row"><button class="sec" data-act="addpar">Adicionar pagamento pendente</button><button class="sec" data-act="addrec">Registrar pagamento recebido</button></div>
+  </div>
+  <h2>Fotos e comprovantes</h2>
+  <div class="card">
+    ${`<input id="arq" type="file" accept="image/*,application/pdf" multiple aria-label="Escolher foto ou comprovante">`}
+    <div class="anx">${anx}</div>
+  </div>
+  <div class="row"><button class="pri" data-act="salvar">Salvar serviço</button>
+  ${existe?`<button class="sec danger" data-act="apagar">${arm?'Toque de novo para apagar':'Apagar serviço'}</button>`:''}</div>`;
+}
+
+function perfilHTML(){
+  const p=items.find(i=>i.tipo==='perfil')||{};
+  const nome=p.nome||'';
+  const iniciais=(nome.trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase())||'👤';
+  return `<h2>Meu perfil</h2>
+  <div class="card" style="text-align:center">
+    <div style="width:84px;height:84px;border-radius:50%;margin:4px auto 12px;background:var(--acc);display:grid;place-items:center;font-size:1.8rem;font-weight:700;color:var(--accInk)">${esc(iniciais)}</div>
+    <b>${esc(nome||'Seu nome')}</b>
+    <div class="sub">Dados do responsável pelo Diário de Serviço</div>
+  </div>
+  <div class="card grid">
+    <div class="full"><label>Nome completo<input data-perfil="nome" value="${esc(p.nome||'')}" autocomplete="name"></label></div>
+    <div><label>Telefone<input data-perfil="telefone" value="${esc(p.telefone||'')}" inputmode="tel" autocomplete="tel"></label></div>
+    <div><label>E-mail<input data-perfil="email" value="${esc(p.email||'')}" inputmode="email" autocomplete="email"></label></div>
+    <div class="full"><label>Nome da empresa ou atividade<input data-perfil="empresa" value="${esc(p.empresa||'')}"></label></div>
+    <div><label>Cidade<input data-perfil="cidade" value="${esc(p.cidade||'')}" autocomplete="address-level2"></label></div>
+    <div><label>Estado<input data-perfil="estado" value="${esc(p.estado||'')}" maxlength="2"></label></div>
+    <div class="full"><label>Observações<textarea data-perfil="observacoes" rows="3">${esc(p.observacoes||'')}</textarea></label></div>
+  </div>
+  <div class="row"><button class="pri" data-act="salvarPerfil">Salvar perfil</button></div>
+  <div class="note">Essas informações ficam salvas somente neste aparelho. O perfil não cria uma conta online nem sincroniza dados com outros celulares.</div>`;
+}
+
+function calc(){
+  const km=parseBR(orc.km),ex=parseBR(orc.exato);
+  const valor=ex>0?ex:(Number(cfg.minimo)||0)+km*(Number(cfg.porKm)||0);
+  const nome=orc.nome.trim(),ped=orc.pedido.trim();
+  const msg=`Olá${nome?', '+nome:''}! Recebi o seu pedido${ped?': '+ped:''}.\n\n`+
+    (ex>0?`O valor deste serviço fica em ${brl(valor)}.`:`O valor mínimo para este serviço é ${brl(valor)}.`)+
+    `\nSe houver mais itens para fazer, me avise que eu vejo e ajusto o valor.\n\nQualquer dúvida, é só falar.`;
+  return {valor,msg};
+}
+function updMsg(){const c=calc();const m=$('#msg'),v=$('#val');if(m)m.value=c.msg;if(v)v.textContent=brl(c.valor);updWa()}
+function updWa(){const a=$('#wa'),m=$('#msg');if(!a||!m)return;let d=(orc.tel||'').replace(/\D/g,'');if(d.length===10||d.length===11)d='55'+d;const ok=d.length>=12;a.href=ok?'https://wa.me/'+d+'?text='+encodeURIComponent(m.value):'#';a.setAttribute('aria-disabled',String(!ok))}
+
+function orcamento(){
+  const l=items.filter(i=>i.tipo==='orcamento').sort((a,b)=>(b.criado||0)-(a.criado||0));
+  const st=['Enviado','Negociando','Aceito','Recusado'];
+  return `<h2>Calcular e responder</h2>
+  <div class="card grid">
+    <div><label>Valor mínimo (R$)<input data-cfg="minimo" inputmode="decimal" value="${esc(fmt(cfg.minimo))}"></label></div>
+    <div><label>Valor por km (R$), só para o seu cálculo<input data-cfg="porKm" inputmode="decimal" value="${esc(fmt(cfg.porKm))}"></label></div>
+    <div class="full"><label>Nome do cliente<input data-o="nome" value="${esc(orc.nome)}"></label></div>
+    <div class="full"><label>Telefone do cliente, com DDD<input data-o="tel" inputmode="tel" value="${esc(orc.tel)}"></label></div>
+    <div class="full"><label>O que ele pediu<textarea data-o="pedido" rows="2">${esc(orc.pedido)}</textarea></label></div>
+    <div><label>Distância (km), só para o seu cálculo<input data-o="km" inputmode="decimal" value="${esc(orc.km)}"></label></div>
+    <div><label>Valor exato, se quiser fixar<input data-o="exato" inputmode="decimal" value="${esc(orc.exato)}"></label></div>
+  </div>
+  <div class="card"><div class="sub">Valor para o cliente</div><div class="big" id="val"></div>
+    <div class="sub">A distância e o valor por km entram só na conta. A mensagem mostra apenas o valor final.</div>
+    <label for="msg">Mensagem pronta</label><textarea id="msg" rows="8"></textarea>
+    <div class="row"><a class="btn" id="wa" target="_blank" rel="noopener" href="#" aria-disabled="true">Abrir no WhatsApp</a><button class="sec" data-act="copiar">Copiar mensagem</button><button class="sec" data-act="salvaorc">Guardar na agenda de respostas</button></div></div>
+  <h2>Agenda de respostas</h2>
+  ${l.length?l.map(o=>`<div class="card"><b>${esc(o.nome||'Sem nome')}</b> <span class="sub">${brl(o.valor)}</span><div>${esc(o.pedido)}</div>
+    <div class="row"><select aria-label="Situação" data-oid="${esc(o.id)}">${st.map(s=>`<option${o.status===s?' selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="row"><button class="sec" data-act="virar" data-id="${esc(o.id)}">Virar serviço</button><button class="ghost danger" data-act="apagaorc" data-id="${esc(o.id)}">Apagar</button></div></div>`).join(''):'<div class="card">Nenhuma resposta guardada ainda.</div>'}`;
+}
+
+function todas(){const r=[];servicos().forEach(s=>(s.parcelas||[]).forEach((p,i)=>r.push({s,i,p})));return r.sort((a,b)=>(a.p.data||'9').localeCompare(b.p.data||'9'))}
+function recebidoV2(){
+  const sv=servicos(),t=todas(),T=s=>Number(s.total)||0;
+  const fechado=sv.reduce((n,s)=>n+T(s),0),rec=sv.reduce((n,s)=>n+sum(s,true),0),falta=sv.reduce((n,s)=>n+Math.max(T(s)-sum(s,true),0),0);
+  const pend=t.filter(x=>!x.p.pago),hist=t.filter(x=>x.p.pago).sort((a,b)=>(b.p.rec||b.p.data||'').localeCompare(a.p.rec||a.p.data||''));
+  const semp=sv.map(s=>({s,d:T(s)-(s.parcelas||[]).reduce((n,p)=>n+(Number(p.valor)||0),0)})).filter(x=>x.d>0.009);
+  const lin=x=>{const atr=!x.p.pago&&x.p.data&&x.p.data<today(),dt=x.p.pago?(x.p.rec||x.p.data):x.p.data;
+    return `<div class="line"><input type="checkbox" style="width:28px;min-height:28px" data-tog="${esc(x.s.id)}:${x.i}" ${x.p.pago?'checked':''} aria-label="Marcar como pago"><div class="t"><b>${esc(x.s.cliente||'Sem nome')}</b><div class="sub ${atr?'bad':''}">${x.p.pago?'Recebido em ':'Vence em '}${fd(dt)}${atr?' (atrasado)':''}</div></div><b>${brl(x.p.valor)}</b></div>`};
+  return `<h2>Resumo</h2><div class="card tot"><div>Valor fechado<div class="big">${brl(fechado)}</div></div><div>Já recebido<div class="big ok">${brl(rec)}</div></div><div>Falta receber<div class="big ${falta>0?'bad':'ok'}">${brl(falta)}</div></div></div>
+  <div class="row"><button class="pri" data-act="expPago">Exportar o que já recebeu</button><button class="sec" data-act="expTudo">Exportar tudo</button></div>
+  <div class="row"><button class="sec" data-act="backup">Fazer backup completo</button><label class="sec" style="display:inline-flex;align-items:center;padding:0 14px;border:2px solid var(--line);border-radius:10px;min-height:48px;cursor:pointer">Restaurar backup<input id="restoreBackup" type="file" accept="application/json,.json" style="display:none"></label></div>
+  <h2>Pagamentos pendentes</h2><div class="card">${pend.length?pend.map(lin).join(''):'Nada pendente.'}</div>
+  <h2>Fechado, sem parcela</h2><div class="card">${semp.length?semp.map(x=>`<div class="line"><div class="t"><b>${esc(x.s.cliente||'Sem nome')}</b><div class="sub">Sem data combinada</div></div><b>${brl(x.d)}</b><button class="sec" data-act="abrir" data-id="${esc(x.s.id)}">Abrir</button></div>`).join(''):'Nenhum.'}</div>
+  <h2>Histórico de pagamentos</h2><div class="card">${hist.length?hist.map(lin).join(''):'Nada recebido ainda.'}</div>`;
+}
+function recebido(){
+  const t=todas(),rec=t.filter(x=>x.p.pago),fal=t.filter(x=>!x.p.pago);
+  const soma=a=>a.reduce((n,x)=>n+(Number(x.p.valor)||0),0);
+  const lin=x=>`<div class="line"><input type="checkbox" style="width:28px;min-height:28px" data-tog="${esc(x.s.id)}:${x.i}" ${x.p.pago?'checked':''} aria-label="Marcar como pago"><div class="t"><b>${esc(x.s.cliente||'Sem nome')}</b><div class="sub ${!x.p.pago&&x.p.data&&x.p.data<today()?'bad':''}">${fd(x.p.data)}${!x.p.pago&&x.p.data&&x.p.data<today()?' (atrasada)':''}</div></div><b>${brl(x.p.valor)}</b></div>`;
+  return `<h2>Resumo</h2><div class="card tot"><div>Já recebido<div class="big ok">${brl(soma(rec))}</div></div><div>A receber<div class="big">${brl(soma(fal))}</div></div></div>
+  <div class="row"><button class="pri" data-act="expPago">Exportar o que já recebeu</button><button class="sec" data-act="expTudo">Exportar tudo</button></div>
+  <div class="row"><button class="sec" data-act="backup">Fazer backup completo</button><label class="sec" style="display:inline-flex;align-items:center;padding:0 14px;border:2px solid var(--line);border-radius:10px;min-height:48px;cursor:pointer">Restaurar backup<input id="restoreBackup" type="file" accept="application/json,.json" style="display:none"></label></div>
+  <h2>A receber</h2><div class="card">${fal.length?fal.map(lin).join(''):'Nada pendente.'}</div>
+  <h2>Já recebido</h2><div class="card">${rec.length?rec.map(lin).join(''):'Nada recebido ainda.'}</div>`;
+}
+
+async function exportar(soPagas){
+  const rows=[['Data','Proprietário','Endereço','Valor','Situação']];
+  todas().filter(x=>!soPagas||x.p.pago).forEach(({s,p})=>rows.push([fd(p.pago&&p.rec?p.rec:p.data),s.cliente||'',[s.rua,s.numero,s.bairro,s.cidade].filter(Boolean).join(', '),fmt(Number(p.valor)||0),p.pago?'Recebida':'A receber']));
+  const csv='\uFEFF'+rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\r\n');
+  baixarArquivo(csv,soPagas?'recebido.csv':'parcelas.csv','text/csv;charset=utf-8');
+}
+function baixarArquivo(data,nome,tipo){const blob=new Blob([data],{type:tipo});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=nome;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);}
+function arquivoDataURL(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(file);});}
+
+
+async function backupCompleto(){
+  const payload={app:'Diario de Servico',version:1,exportadoEm:new Date().toISOString(),items};
+  baixarArquivo(JSON.stringify(payload,null,2),'backup-diario-servico.json','application/json');
+  setNote('Backup completo exportado. Guarde o arquivo em local seguro.');
+}
+async function restaurarBackup(file){
+  try{const raw=JSON.parse(await file.text());if(!raw||raw.app!=='Diario de Servico'||!Array.isArray(raw.items))throw new Error('invalid');
+    if(!confirm('Restaurar este backup? Os registros atuais com o mesmo identificador serão substituídos.'))return;
+    for(const it of raw.items){if(it&&it.id)await idbPut(it)}
+    items=await idbAll();const c=items.find(i=>i.tipo==='config');if(c)cfg=Object.assign({minimo:300,porKm:0},c);setNote('Backup restaurado neste aparelho.');render();
+  }catch(e){setNote('Não consegui restaurar. Confira se escolheu um backup válido do Diário de Serviço.');}
+}
+
+function copiar(){
+  const m=$('#msg');const txt=m.value;
+  const ok=()=>setNote('Mensagem copiada.');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(ok,()=>{m.select();document.execCommand('copy');ok()})}
+  else{m.select();document.execCommand('copy');ok()}
+}
+
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.k&&draft){draft[t.dataset.k]=t.value;updResumo()}
+  else if(t.dataset.pi!==undefined&&draft){const p=draft.parcelas[+t.dataset.pi];if(p){p[t.dataset.pk]=t.type==='checkbox'?t.checked:t.value;if(t.dataset.pk==='pago'){p.rec=t.checked?(p.rec||today()):'';const r=document.querySelector('[data-pi="'+t.dataset.pi+'"][data-pk="rec"]');if(r)r.value=p.rec}}updResumo()}
+  else if(t.dataset.o){orc[t.dataset.o]=t.value;updMsg()}
+  else if(t.id==='msg')updWa()
+});
+document.addEventListener('change',async e=>{
+  const t=e.target;
+  if(t.dataset.cfg){cfg[t.dataset.cfg]=parseBR(t.value);updMsg();await save({id:'config',tipo:'config',minimo:cfg.minimo,porKm:cfg.porKm})}
+  else if(t.dataset.oid){const o=items.find(x=>x.id===t.dataset.oid);if(o)await save(Object.assign({},o,{status:t.value}))}
+  else if(t.dataset.tog){const [id,i]=t.dataset.tog.split(':');const s=items.find(x=>x.id===id);if(s){const parcelas=s.parcelas.map((p,k)=>k===+i?Object.assign({},p,{pago:t.checked,rec:t.checked?today():''}):p);await save(Object.assign({},s,{parcelas}))}}
+  else if(t.id==='restoreBackup'&&t.files&&t.files[0]){await restaurarBackup(t.files[0]);t.value='';}
+  else if(t.id==='arq'&&draft){
+    setNote('Salvando anexos neste aparelho…');
+    try{for(const f of t.files){if(f.size>8*1024*1024)throw new Error('Arquivo maior que 8 MB');const dataUrl=await arquivoDataURL(f);draft.anexos.push({id:newId(),url:dataUrl,nome:f.name,tipo:f.type})}
+      await save(toDoc(draft));setNote('Anexos salvos neste aparelho.');render()}catch(err){setNote(err.message==='Arquivo maior que 8 MB'?'Cada anexo deve ter até 8 MB.':'Não consegui salvar o arquivo.')}
+  }
+});
+document.addEventListener('click',async e=>{
+  const tb=e.target.closest('.tabs button');
+  if(tb){tab=tb.dataset.tab;draft=null;arm=false;setNote(memory?$('#note').textContent:'');render();return}
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const a=b.dataset.act,i=+b.dataset.i;
+  if(a==='novo'){draft=novo();render()}
+  else if(a==='abrir'){const s=items.find(x=>x.id===b.dataset.id);if(s){tab='servicos';draft=toDraft(s);arm=false;render()}}
+  else if(a==='voltar'){draft=null;arm=false;render()}
+  else if(a==='addpar'){draft.parcelas.push({data:'',valor:'',pago:false,rec:''});render()}
+  else if(a==='addrec'){const tot=parseBR(draft.total),rc=draft.parcelas.filter(p=>p.pago).reduce((n,p)=>n+parseBR(p.valor),0);draft.parcelas.push({data:today(),valor:fmt(Math.max(tot-rc,0)),pago:true,rec:today()});render()}
+  else if(a==='rmpar'){draft.parcelas.splice(i,1);render()}
+  else if(a==='rmanx'){draft.anexos.splice(i,1);render()}
+  else if(a==='dividir'){
+    const n=parseInt($('#nParc').value,10),tot=parseBR(draft.total),first=$('#dtParc').value;
+    if(!(n>0)||!(tot>0)){setNote('Informe o valor total e quantas parcelas.');return}
+    setNote('');const base=Math.floor(tot/n*100)/100;draft.parcelas=[];
+    for(let k=0;k<n;k++){let d='';if(first){const x=new Date(first+'T12:00:00');x.setMonth(x.getMonth()+k);d=x.toISOString().slice(0,10)}
+      draft.parcelas.push({data:d,valor:fmt(k===n-1?Math.round((tot-base*(n-1))*100)/100:base),pago:false})}
+    render();
+  }
+  else if(a==='salvar'){if(await save(toDoc(draft))){draft=null;setNote(memory?$('#note').textContent:'');render()}}
+  else if(a==='apagar'){if(!arm){arm=true;render()}else{await del(draft.id);draft=null;arm=false;render()}}
+  else if(a==='copiar')copiar();
+  else if(a==='salvaorc'){const c=calc();if(!orc.nome.trim()&&!orc.pedido.trim()){setNote('Preencha o nome ou o pedido.');return}
+    await save({id:newId(),tipo:'orcamento',nome:orc.nome.trim(),pedido:orc.pedido.trim(),tel:orc.tel.trim(),valor:c.valor,status:'Enviado',criado:Date.now()});
+    orc={nome:'',tel:'',pedido:'',km:'',exato:''};setNote('');render()}
+  else if(a==='apagaorc')await del(b.dataset.id);
+  else if(a==='virar'){const o=items.find(x=>x.id===b.dataset.id);if(o){draft=toDraft({id:newId(),cliente:o.nome,resumo:o.pedido,total:o.valor,criado:Date.now()});tab='servicos';render()}}
+  else if(a==='salvarPerfil'){const atual=items.find(x=>x.tipo==='perfil')||{id:'perfil',tipo:'perfil'};const novoPerfil=Object.assign({},atual);document.querySelectorAll('[data-perfil]').forEach(el=>novoPerfil[el.dataset.perfil]=el.value.trim());if(await save(novoPerfil)){setNote('Perfil salvo neste aparelho.');render()}}
+  else if(a==='backup')backupCompleto();
+  else if(a==='expPago')exportar(true);
+  else if(a==='expTudo')exportar(false);
+});
+if('serviceWorker' in navigator && location.protocol!=='file:'){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));}
+</script>
+</body>
+</html>
